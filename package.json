@@ -1,15 +1,36 @@
 {
   "name": "myapp",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "node_modules/expo/AppEntry.js",
   "dependencies": {
-    "expo": "~56.0.11",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-navigation/bottom-tabs": "^7.18.2",
+    "@react-navigation/native": "^7.3.1",
+    "@react-navigation/native-stack": "^7.17.3",
+    "@react-navigation/stack": "^7.10.3",
+    "expo": "~56.0.0",
+    "expo-clipboard": "~56.0.4",
+    "expo-file-system": "~56.0.8",
+    "expo-image": "~56.0.11",
+    "expo-image-picker": "~56.0.18",
+    "expo-secure-store": "~56.0.4",
     "expo-status-bar": "~56.0.4",
+    "lottie-react-native": "~7.3.4",
+    "lucide-react-native": "^1.18.0",
+    "nostr-tools": "^2.23.5",
+    "phosphor-react-native": "^3.0.6",
     "react": "19.2.3",
-    "react-native": "0.85.3"
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-gesture-handler": "~2.31.1",
+    "react-native-get-random-values": "~1.11.0",
+    "react-native-reanimated": "4.3.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.25.2",
+    "react-native-web": "^0.21.2"
   },
   "devDependencies": {
-    "@types/react": "~19.2.2",
+    "@types/react": "~19.2.14",
     "typescript": "~6.0.3"
   },
   "scripts": {

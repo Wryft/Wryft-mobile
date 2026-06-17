@@ -1,25 +1,45 @@
 {
   "expo": {
-    "name": "myapp",
+    "name": "Wryft",
     "slug": "myapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wryft.app"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.wryft.app",
+      "permissions": [],
+      "jsEngine": "hermes",
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true
+    },
+    "splash": {
+      "backgroundColor": "#000000",
+      "resizeMode": "contain"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-status-bar",
+      "expo-image",
+      "expo-secure-store",
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fc96e8e2-5671-4a44-85a8-26a0c7a0bfb0"
+      }
     }
   }
 }
