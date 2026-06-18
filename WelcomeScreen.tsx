@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   button: {
-    backgroundColor: '#fff',
+    backgroundColor: '#4641D9',
     borderRadius: 999,
     paddingVertical: 16,
     paddingHorizontal: 40,
@@ -74,6 +74,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontWeight: '600',
     fontSize: 15,
-    color: '#000',
+    color: '#fff',
   },
 });

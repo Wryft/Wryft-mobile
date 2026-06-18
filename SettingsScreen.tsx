@@ -25,6 +25,8 @@ import {
   CaretLeft,
   UserCircle,
   Camera,
+  Key,
+  Info,
 } from 'phosphor-react-native';
 import { nip19, finalizeEvent } from 'nostr-tools';
 import { useNostr } from './NostrContext';
@@ -33,7 +35,7 @@ import { useRelay } from './RelayContext';
 import { useColors } from './colors';
 import { uploadImage } from './uploadImage';
 
-type Section = 'profile' | 'lookAndFeel' | 'privacy' | 'relays';
+type Section = 'profile' | 'lookAndFeel' | 'privacy' | 'relays' | 'keys' | 'about';
 
 interface NavItem {
   section: Section;
@@ -49,11 +51,28 @@ interface NavGroup {
 
 const groups: NavGroup[] = [
   {
+    label: 'USER SETTINGS',
     items: [
       { section: 'profile', icon: User, label: 'Profile' },
       { section: 'lookAndFeel', icon: PaintBrush, label: 'Look & Feel' },
       { section: 'privacy', icon: Lock, label: 'Privacy' },
+    ],
+  },
+  {
+    label: 'ADVANCED',
+    items: [
       { section: 'relays', icon: PlugsConnected, label: 'Relays' },
+      { section: 'keys', icon: Key, label: 'Keys' },
+    ],
+  },
+  {
+    label: 'ABOUT',
+    items: [
+      { section: 'about', icon: Info, label: 'About' },
+    ],
+  },
+  {
+    items: [
       { section: 'profile', icon: SignOut, label: 'Log Out', isDanger: true },
     ],
   },
@@ -171,6 +190,7 @@ function ProfilePage() {
   const [displayName, setDisplayName] = useState('');
   const [pronouns, setPronouns] = useState('');
   const [bio, setBio] = useState('');
+  const [nip05, setNip05] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -184,6 +204,7 @@ function ProfilePage() {
       setPronouns(profile.pronouns || '');
       setBio(profile.about || '');
       setAvatarUrl(profile.picture || null);
+      setNip05(profile.nip05 || '');
     }
   }, [profile]);
   const picture = avatarUrl || profile?.picture;
@@ -229,6 +250,7 @@ function ProfilePage() {
         picture: avatarUrl || profile?.picture || '',
         pronouns,
         about: bio,
+        nip05: nip05 || existing.nip05 || '',
       };
 
       const eventTemplate = {
@@ -299,6 +321,25 @@ function ProfilePage() {
       </View>
 
       <View style={styles.fieldGroup}>
+        <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>NIP-05</Text>
+        <TextInput
+          style={[styles.input, { backgroundColor: c.bgInput, color: c.text, borderColor: c.border }]}
+          value={nip05}
+          onChangeText={setNip05}
+          placeholder="you@example.com"
+          placeholderTextColor={c.textMuted}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <Text style={[styles.fieldHint, { color: c.textMuted }]}>
+          Nostr address for verified checkmark. Host a .well-known/nostr.json on your domain with your pubkey.
+        </Text>
+        <Text style={[styles.fieldHint, { color: c.textMuted, marginTop: 4 }]}>
+          Example: name@example.com → https://example.com/.well-known/nostr.json?name=name
+        </Text>
+      </View>
+
+      <View style={styles.fieldGroup}>
         <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>AVATAR</Text>
         {picture && (
           <Image source={{ uri: picture }} style={styles.currentAvatar} />
@@ -357,8 +398,8 @@ function ProfilePage() {
 const _chatFontSizeMarkers = [12, 14, 15, 16, 18, 20, 24];
 
 const swatchColors: Record<string, string> = {
-  coal: '#050608',
-  light: '#FBFBFC',
+  coal: '#000',
+  light: '#fff',
 };
 
 function LookAndFeelPage() {
@@ -603,6 +644,91 @@ function RelaysPage() {
   );
 }
 
+function KeysPage() {
+  const c = useColors();
+  const { npub, nsec } = useNostr();
+  const [showNsec, setShowNsec] = useState(false);
+
+  return (
+    <ScrollView contentContainerStyle={styles.sectionContent}>
+      <View style={styles.fieldGroup}>
+        <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>NPUB (PUBLIC KEY)</Text>
+        <Text style={[styles.usernameText, { color: c.text }]} selectable>{npub}</Text>
+        <Text style={[styles.fieldHint, { color: c.textMuted }]}>Share this freely — it's your public address.</Text>
+      </View>
+
+      {nsec ? (
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>NSEC (PRIVATE KEY)</Text>
+          <View style={[styles.nsecBox, { backgroundColor: c.bgCard, borderColor: c.border }]}>
+            <Text style={{ color: c.text, fontSize: 14, fontFamily: 'monospace' }} selectable={showNsec}>
+              {showNsec ? nsec : nsec.slice(0, 12) + '••••••••••••••••••••'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setShowNsec(!showNsec)}
+            style={[styles.actionButton, { backgroundColor: c.bgCard, marginTop: 8 }]}
+          >
+            <Text style={{ color: c.text, fontSize: 14 }}>
+              {showNsec ? 'Hide nsec' : 'Reveal nsec'}
+            </Text>
+          </TouchableOpacity>
+          <Text style={[styles.fieldHint, { color: '#F23F42', marginTop: 8, fontWeight: '500' }]}>
+            Never share your nsec. It gives full access to your account.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>NSEC (PRIVATE KEY)</Text>
+          <Text style={[styles.fieldHint, { color: c.textMuted }]}>
+            Not available — you logged in with an npub.
+          </Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+function AboutPage() {
+  const c = useColors();
+  return (
+    <ScrollView contentContainerStyle={styles.sectionContent}>
+      <View style={[styles.profileHeader, { borderBottomColor: c.borderLight }]}>
+        <Text style={{ color: c.text, fontSize: 20, fontWeight: '700', marginBottom: 4 }}>Wryft</Text>
+        <Text style={{ color: c.textSecondary, fontSize: 14 }}>Version 1.0.0</Text>
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>ABOUT</Text>
+        <Text style={{ color: c.text, fontSize: 15, lineHeight: 22 }}>
+          Wryft is a private, decentralized chat app built on the Nostr protocol. Messages are encrypted, your identity is yours, and there are no central servers.
+        </Text>
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>LINKS</Text>
+        <TouchableOpacity style={[styles.actionButton, { backgroundColor: c.bgCard }]}>
+          <Text style={{ color: c.accent, fontSize: 15 }}>GitHub</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionButton, { backgroundColor: c.bgCard }]}>
+          <Text style={{ color: c.accent, fontSize: 15 }}>Website</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.fieldGroup}>
+        <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>TECHNOLOGY</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {['React Native', 'Expo', 'Nostr', 'TypeScript'].map(tag => (
+            <View key={tag} style={{ backgroundColor: c.bgCard, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4 }}>
+              <Text style={{ color: c.textMuted, fontSize: 12 }}>{tag}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </ScrollView>
+  );
+}
+
 function SettingsSubPage({
   section,
   onBack,
@@ -626,6 +752,10 @@ function SettingsSubPage({
         <PrivacyPage />
       ) : section === 'relays' ? (
         <RelaysPage />
+      ) : section === 'keys' ? (
+        <KeysPage />
+      ) : section === 'about' ? (
+        <AboutPage />
       ) : null}
     </View>
   );
@@ -1009,5 +1139,11 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
+  },
+  nsecBox: {
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
 });

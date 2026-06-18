@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Image } from 'expo-image';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList,
-  Keyboard, ActivityIndicator,
+  Keyboard, ActivityIndicator, Modal, ScrollView, Animated,
 } from 'react-native';
+import { Globe, UserCircle } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { nip19 } from 'nostr-tools';
 import { useColors } from './colors';
@@ -11,6 +12,7 @@ import { useNostr } from './NostrContext';
 import { useRelay } from './RelayContext';
 import { useGroupMessages, sendPrivateGroupMessage } from './useGroups';
 import { useProfiles } from './useProfile';
+import useDragClose from './useDragClose';
 
 function formatTimestamp(seconds: number): string {
   const d = new Date(seconds * 1000);
@@ -23,15 +25,22 @@ function formatTimestamp(seconds: number): string {
 export default function GroupDetailScreen({ route }: any) {
   const channelId = route.params?.channelId as string;
   const members: string[] = route.params?.members || [];
-  const { publicKey: userPubkey, nsec } = useNostr();
+  const { publicKey: userPubkey, nsec, profile } = useNostr();
   const { publish } = useRelay();
   const { messages, loading } = useGroupMessages(channelId);
-  const pubkeys = useMemo(() => [...new Set(messages.map(m => m.pubkey))], [messages]);
+  const pubkeys = useMemo(() => [...new Set([...messages.map(m => m.pubkey), userPubkey])], [messages, userPubkey]);
   const profileMap = useProfiles(pubkeys);
   const c = useColors();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [keyboardH, setKeyboardH] = useState(0);
+  const [viewProfilePubkey, setViewProfilePubkey] = useState<string | null>(null);
+  const profileDrag = useDragClose(() => setViewProfilePubkey(null));
+
+  useEffect(() => {
+    if (viewProfilePubkey) profileDrag.panY.setValue(0);
+  }, [viewProfilePubkey]);
+
   const listRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -83,14 +92,20 @@ export default function GroupDetailScreen({ route }: any) {
               (() => {
                 const p = profileMap.get(msg.pubkey);
                 if (p?.picture) {
-                  return <Image source={{ uri: p.picture }} style={styles.avatar} contentFit="cover" />;
+                  return (
+                    <TouchableOpacity onPress={() => setViewProfilePubkey(msg.pubkey)}>
+                      <Image source={{ uri: p.picture }} style={styles.avatar} contentFit="cover" />
+                    </TouchableOpacity>
+                  );
                 }
                 return (
-                  <View style={[styles.avatar, { backgroundColor: c.bgCard }]}>
-                    <Text style={[styles.avatarText, { color: c.textMuted }]}>
-                      {msg.pubkey.slice(0, 2).toUpperCase()}
-                    </Text>
-                  </View>
+                  <TouchableOpacity onPress={() => setViewProfilePubkey(msg.pubkey)}>
+                    <View style={[styles.avatar, { backgroundColor: c.bgCard }]}>
+                      <Text style={[styles.avatarText, { color: c.textMuted }]}>
+                        {msg.pubkey.slice(0, 2).toUpperCase()}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 );
               })()
             ) : (
@@ -100,7 +115,9 @@ export default function GroupDetailScreen({ route }: any) {
               {showAvatar && (
                 <View style={styles.header}>
                   <Text style={[styles.author, { color: c.text }]}>
-                    {msg.pubkey === userPubkey ? 'You' : msg.pubkey.slice(0, 12) + '...'}
+                    {msg.pubkey === userPubkey
+                      ? (profile?.display_name || profile?.name || 'You')
+                      : ((profileMap.get(msg.pubkey)?.display_name || profileMap.get(msg.pubkey)?.name) || msg.pubkey.slice(0, 12) + '...')}
                   </Text>
                   <Text style={[styles.time, { color: c.textMuted }]}>{formatTimestamp(msg.created_at)}</Text>
                 </View>
@@ -123,6 +140,61 @@ export default function GroupDetailScreen({ route }: any) {
           <Text style={{ color: c.bg, fontWeight: '600', fontSize: 15 }}>Send</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal visible={!!viewProfilePubkey} transparent animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: '#000' }}>
+          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setViewProfilePubkey(null)} />
+          <Animated.View style={[{ position: 'absolute', bottom: 0, left: 0, right: 0 }, { transform: [{ translateY: profileDrag.panY }] }]}>
+          <View style={{ borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden', backgroundColor: c.bg, maxHeight: '90%' }}>
+            {(() => {
+              const pk = viewProfilePubkey;
+              const isOwn = pk === userPubkey;
+              const p = isOwn ? profile : profileMap.get(pk || '');
+              return (
+                <>
+                  <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 4 }} {...profileDrag.panHandlers}>
+                    <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)' }} />
+                  </View>
+                  <ScrollView bounces={true} style={{ maxHeight: 500 }}>
+                    <View style={{ height: 140, backgroundColor: c.bgCard }}>
+                      {p?.banner && <Image source={{ uri: p.banner }} style={{ width: '100%', height: '100%' }} />}
+                    </View>
+                    <View style={{ alignItems: 'center', marginTop: -44 }}>
+                      <View style={{ padding: 4, borderRadius: 44, backgroundColor: c.bg }}>
+                        {p?.picture ? <Image source={{ uri: p.picture }} style={{ width: 80, height: 80, borderRadius: 40 }} />
+                        : <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: c.bgCard, justifyContent: 'center', alignItems: 'center' }}>
+                            <UserCircle size={44} color={c.textMuted} weight="fill" />
+                          </View>}
+                      </View>
+                    </View>
+                    <View style={{ paddingHorizontal: 20, paddingBottom: 40 }}>
+                      <Text style={{ color: c.text, fontSize: 22, fontWeight: '700' }}>
+                        {p?.display_name || p?.name || pk?.slice(0, 12) || ''}
+                      </Text>
+                      {p?.pronouns && <Text style={{ color: c.textSecondary, fontSize: 13, marginTop: 2 }}>{p.pronouns}</Text>}
+                      {p?.about && (
+                        <View style={{ backgroundColor: c.bgCard, borderRadius: 12, padding: 14, marginTop: 16 }}>
+                          <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>About Me</Text>
+                          <Text style={{ color: c.text, fontSize: 14, lineHeight: 20 }}>{p.about}</Text>
+                        </View>
+                      )}
+                      {p?.website && (
+                        <View style={{ backgroundColor: c.bgCard, borderRadius: 12, padding: 14, marginTop: 12 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Globe size={16} color={c.textSecondary} />
+                            <Text style={{ color: c.accent, fontSize: 14 }}>{p.website}</Text>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  </ScrollView>
+                </>
+              );
+            })()}
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }

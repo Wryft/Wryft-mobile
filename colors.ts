@@ -22,7 +22,7 @@ const coal: Colors = {
   bgCard: '#111',
   bgCardAlt: '#1A1A1A',
   bgInput: '#1A1A1A',
-  bgSwatch: '#050608',
+  bgSwatch: '#4641D9',
   text: '#E0E0E0',
   textSecondary: '#888',
   textMuted: '#666',
@@ -31,7 +31,7 @@ const coal: Colors = {
   borderLight: '#1A1A1A',
   tabBarBg: '#000',
   statusBar: 'light-content',
-  accent: '#E0E0E0',
+  accent: '#4641D9',
 };
 
 const light: Colors = {
@@ -39,7 +39,7 @@ const light: Colors = {
   bgCard: '#f5f5f5',
   bgCardAlt: '#eee',
   bgInput: '#f0f0f0',
-  bgSwatch: '#FBFBFC',
+  bgSwatch: '#4641D9',
   text: '#1a1a1a',
   textSecondary: '#666',
   textMuted: '#999',
@@ -48,7 +48,7 @@ const light: Colors = {
   borderLight: '#eee',
   tabBarBg: '#fff',
   statusBar: 'dark-content',
-  accent: '#1a1a1a',
+  accent: '#4641D9',
 };
 
 const palettes: Record<ThemeMode, Colors> = { coal, light };

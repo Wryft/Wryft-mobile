@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { Image } from 'expo-image';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity, FlatList,
-  Keyboard, Modal, ActivityIndicator, ScrollView,
+  Keyboard, Modal, ActivityIndicator, ScrollView, Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from './colors';
@@ -17,23 +17,27 @@ import { useContactList } from './useContacts';
 import { useDMs, sendDM, type Conversation } from './useDMs';
 import { X, CopySimple, UserCircle, Globe } from 'phosphor-react-native';
 import * as Clipboard from 'expo-clipboard';
+import useDragClose from './useDragClose';
 
 const AVATAR_COLUMN = 56;
 
-function ProfileAvatar({ pubkey, size }: { pubkey: string; size?: number }) {
+function ProfileAvatar({ pubkey, size, onPress }: { pubkey: string; size?: number; onPress?: () => void }) {
   const p = useProfile(pubkey);
   const c = useColors();
   const s = size || 40;
-  if (p?.picture) {
-    return <Image source={{ uri: p.picture }} style={{ width: s, height: s, borderRadius: s / 2 }} contentFit="cover" />;
-  }
-  return (
+  const inner = p?.picture ? (
+    <Image source={{ uri: p.picture }} style={{ width: s, height: s, borderRadius: s / 2 }} contentFit="cover" />
+  ) : (
     <View style={[styles.msgAvatar, { backgroundColor: c.bgCard, width: s, height: s, borderRadius: s / 2 }]}>
       <Text style={[styles.msgAvatarText, { color: c.textMuted }]}>
         {pubkey.slice(0, 2).toUpperCase()}
       </Text>
     </View>
   );
+  if (onPress) {
+    return <TouchableOpacity onPress={onPress}>{inner}</TouchableOpacity>;
+  }
+  return inner;
 }
 
 function findImageUrls(text: string): string[] {
@@ -73,6 +77,11 @@ export default function ChatDetailScreen({ route, navigation }: any) {
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [contextMsg, setContextMsg] = useState<string | null>(null);
   const [viewProfile, setViewProfile] = useState<string | null>(null);
+  const profileDrag = useDragClose(() => setViewProfile(null));
+
+  useEffect(() => {
+    if (viewProfile) profileDrag.panY.setValue(0);
+  }, [viewProfile]);
   const listRef = useRef<FlatList>(null);
   const isContact = contacts.some(c => c.pubkey === targetPubkey);
 
@@ -214,7 +223,7 @@ export default function ChatDetailScreen({ route, navigation }: any) {
             <View style={[styles.msgRow, showAvatar ? styles.msgRowTop : styles.msgRowGrouped]}>
               <View style={styles.avatarColumn}>
                 {showAvatar ? (
-                  <ProfileAvatar pubkey={isMe ? userPubkey : msg.pubkey} size={40} />
+                  <ProfileAvatar pubkey={isMe ? userPubkey : msg.pubkey} size={40} onPress={() => setViewProfile(isMe ? userPubkey : msg.pubkey)} />
                 ) : null}
               </View>
               <View style={styles.msgContent}>
@@ -322,79 +331,72 @@ export default function ChatDetailScreen({ route, navigation }: any) {
           const isOwn = viewProfile === userPubkey;
           const p = isOwn ? profile : targetProfile;
           return (
-            <TouchableOpacity style={styles.profileOverlay} activeOpacity={1} onPress={() => setViewProfile(null)}>
-              <TouchableOpacity activeOpacity={1} style={[styles.profileSheet, { backgroundColor: c.bg }]}>
-                <View style={styles.profileBanner}>
-                  {p?.banner ? <Image source={{ uri: p.banner }} style={styles.profileBannerImg} /> : null}
+            <View style={styles.profileOverlay}>
+              <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setViewProfile(null)} />
+              <Animated.View style={{ transform: [{ translateY: profileDrag.panY }] }}>
+                <View style={[styles.profileSheet, { backgroundColor: c.bg }]}>
+                <View style={{ alignItems: 'center', paddingTop: 10, paddingBottom: 4 }} {...profileDrag.panHandlers}>
+                  <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)' }} />
                 </View>
-
-                <View style={[styles.profileAvatarWrap, { marginTop: -44 }]}>
-                  <View style={[styles.profileAvatarBorder, { backgroundColor: c.bg }]}>
-                    {p?.picture ? (
-                      <Image source={{ uri: p.picture }} style={styles.profileAvatar} />
-                    ) : (
-                      <View style={[styles.profileAvatar, { backgroundColor: c.bgCard, justifyContent: 'center', alignItems: 'center' }]}>
-                        <UserCircle size={44} color={c.textMuted} weight="fill" />
-                      </View>
-                    )}
+                  <ScrollView bounces={true} style={{ maxHeight: 500 }}>
+                  <View style={styles.profileBanner}>
+                    {p?.banner ? <Image source={{ uri: p.banner }} style={styles.profileBannerImg} /> : null}
                   </View>
-                </View>
-
-                <ScrollView bounces={false} style={{ maxHeight: 400 }}>
-                  <View style={styles.profileBody}>
-                    <Text style={{ color: c.text, fontSize: 24, fontWeight: '700' }}>
-                      {p?.display_name || p?.name || (viewProfile || '').slice(0, 12) + '...'}
-                    </Text>
-                    {p?.pronouns && (
-                      <Text style={{ color: c.textSecondary, fontSize: 13, marginTop: 2 }}>{p.pronouns}</Text>
-                    )}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                      <Text style={{ color: c.textSecondary, fontSize: 14, fontWeight: '500' }}>
-                        {isOwn ? npub : nip19.npubEncode(viewProfile || '')}
+                  <View style={[styles.profileAvatarWrap, { marginTop: -44 }]}>
+                    <View style={[styles.profileAvatarBorder, { backgroundColor: c.bg }]}>
+                      {p?.picture ? <Image source={{ uri: p.picture }} style={styles.profileAvatar} />
+                      : <View style={[styles.profileAvatar, { backgroundColor: c.bgCard, justifyContent: 'center', alignItems: 'center' }]}>
+                          <UserCircle size={44} color={c.textMuted} weight="fill" />
+                        </View>}
+                    </View>
+                  </View>
+                    <View style={styles.profileBody}>
+                      <Text style={{ color: c.text, fontSize: 24, fontWeight: '700' }}>
+                        {p?.display_name || p?.name || (viewProfile || '').slice(0, 12) + '...'}
                       </Text>
-                      {p?.nip05 && <Text style={{ color: c.accent, fontSize: 13 }}>{p.nip05}</Text>}
-                    </View>
-
-                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-                      <TouchableOpacity onPress={() => setViewProfile(null)} style={[styles.profileBtn, { backgroundColor: c.bgCard, flex: 1 }]}>
-                        <Text style={{ color: c.text, fontSize: 15, fontWeight: '600' }}>
-                          {isOwn ? 'Close' : 'Message'}
+                      {p?.pronouns && <Text style={{ color: c.textSecondary, fontSize: 13, marginTop: 2 }}>{p.pronouns}</Text>}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                        <Text style={{ color: c.textSecondary, fontSize: 14, fontWeight: '500' }}>
+                          {isOwn ? npub : nip19.npubEncode(viewProfile || '')}
                         </Text>
-                      </TouchableOpacity>
-                      {!isOwn && !isContact && nsec && (
-                        <TouchableOpacity onPress={() => { handleAddContact(); setViewProfile(null); }} style={[styles.profileBtn, { backgroundColor: c.accent }]}>
-                          <Text style={{ color: c.bg, fontSize: 15, fontWeight: '600' }}>Add Contact</Text>
-                        </TouchableOpacity>
-                      )}
-                      {!isOwn && (
-                        <TouchableOpacity
-                          style={[styles.profileBtn, { backgroundColor: c.bgCard, width: 44 }]}
-                          onPress={() => { setViewProfile(null); setShowActions(true); }}
-                        >
-                          <Text style={{ color: c.text, fontSize: 18 }}>...</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-
-                    {p?.about && (
-                      <View style={[styles.profileCard, { backgroundColor: c.bgCard, marginTop: 16 }]}>
-                        <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>About Me</Text>
-                        <Text style={{ color: c.text, fontSize: 14, lineHeight: 20 }}>{p.about}</Text>
+                        {p?.nip05 && <Text style={{ color: c.accent, fontSize: 13 }}>{p.nip05}</Text>}
                       </View>
-                    )}
-                    {p?.website && (
-                      <View style={[styles.profileCard, { backgroundColor: c.bgCard, marginTop: 12 }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Globe size={16} color={c.textSecondary} />
-                          <Text style={{ color: c.accent, fontSize: 14 }}>{p.website}</Text>
+                      <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+                        <TouchableOpacity onPress={() => setViewProfile(null)} style={[styles.profileBtn, { backgroundColor: c.bgCard, flex: 1 }]}>
+                          <Text style={{ color: c.text, fontSize: 15, fontWeight: '600' }}>{isOwn ? 'Close' : 'Message'}</Text>
+                        </TouchableOpacity>
+                        {!isOwn && !isContact && nsec && (
+                          <TouchableOpacity onPress={() => { handleAddContact(); setViewProfile(null); }} style={[styles.profileBtn, { backgroundColor: c.accent }]}>
+                            <Text style={{ color: c.bg, fontSize: 15, fontWeight: '600' }}>Add Contact</Text>
+                          </TouchableOpacity>
+                        )}
+                        {!isOwn && (
+                          <TouchableOpacity style={[styles.profileBtn, { backgroundColor: c.bgCard, width: 44 }]}
+                            onPress={() => { setViewProfile(null); setShowActions(true); }}>
+                            <Text style={{ color: c.text, fontSize: 18 }}>...</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      {p?.about && (
+                        <View style={[styles.profileCard, { backgroundColor: c.bgCard, marginTop: 16 }]}>
+                          <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '600', marginBottom: 6 }}>About Me</Text>
+                          <Text style={{ color: c.text, fontSize: 14, lineHeight: 20 }}>{p.about}</Text>
                         </View>
-                      </View>
-                    )}
-                    <View style={{ height: 40 }} />
-                  </View>
-                </ScrollView>
-              </TouchableOpacity>
-            </TouchableOpacity>
+                      )}
+                      {p?.website && (
+                        <View style={[styles.profileCard, { backgroundColor: c.bgCard, marginTop: 12 }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Globe size={16} color={c.textSecondary} />
+                            <Text style={{ color: c.accent, fontSize: 14 }}>{p.website}</Text>
+                          </View>
+                        </View>
+                      )}
+                      <View style={{ height: 40 }} />
+                    </View>
+                  </ScrollView>
+                </View>
+              </Animated.View>
+            </View>
           );
         })()}
       </Modal>
@@ -560,11 +562,13 @@ const styles = StyleSheet.create({
   profileOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   profileSheet: {
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
+    overflow: 'hidden',
+    maxHeight: '90%',
   },
   profileBanner: {
     height: 184,

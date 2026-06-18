@@ -12,6 +12,7 @@ import { useDMs } from './useDMs';
 import { usePreferences } from './PreferencesContext';
 import { useProfiles } from './useProfile';
 import { useContactList } from './useContacts';
+import { useDMNotifications } from './useNotifications';
 import { useRelay } from './RelayContext';
 
 const LOADING_GIF = require('./assets/loading.gif');
@@ -109,6 +110,7 @@ export default function ChatScreen({ navigation }: any) {
   const { conversations, loading, refresh: refreshDMs } = useDMs(userPubkey, privateKeyHex || undefined, dmPrivacy, contactPubkeys);
   const convoPubkeys = useMemo(() => conversations.map(c => c.pubkey), [conversations]);
   const profileMap = useProfiles(convoPubkeys);
+  useDMNotifications(conversations, userPubkey, profileMap);
   const [showNewDM, setShowNewDM] = useState(false);
   const [newDMPubkey, setNewDMPubkey] = useState('');
   const [newDMError, setNewDMError] = useState('');

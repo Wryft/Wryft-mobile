@@ -139,12 +139,12 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: '600' },
   about: { fontSize: 13, marginTop: 2 },
   fab: {
-    position: 'absolute', right: 20, bottom: 20, width: 56, height: 56,
-    borderRadius: 28, alignItems: 'center', justifyContent: 'center',
+    position: 'absolute', right: 16, bottom: 20, width: 50, height: 50,
+    borderRadius: 25, alignItems: 'center', justifyContent: 'center',
     elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3, shadowRadius: 4,
   },
-  fabText: { fontSize: 28, fontWeight: '300', lineHeight: 30 },
+  fabText: { fontSize: 24, fontWeight: '400', lineHeight: 26 },
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center', alignItems: 'center',

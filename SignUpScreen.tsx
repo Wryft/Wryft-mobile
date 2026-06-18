@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   goButton: {
-    backgroundColor: '#fff',
+    backgroundColor: '#4641D9',
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 40,
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   goButtonText: {
     fontWeight: '600',
     fontSize: 15,
-    color: '#000',
+    color: '#fff',
     textAlign: 'center',
   },
   divider: {

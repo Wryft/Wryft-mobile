@@ -1,7 +1,8 @@
 import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
 
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback, useMemo, useEffect } from 'react';
+import { initNotifications } from './useNotifications';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -227,6 +228,8 @@ function NavigatorWithAuth() {
 }
 
 function App() {
+  useEffect(() => { initNotifications(); }, []);
+
   return (
     <SafeAreaProvider>
       <PreferencesProvider>
