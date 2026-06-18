@@ -6,6 +6,7 @@ tags:
     - Chat
 license: MIT
 website: wryft.org
+pubkey: npub1c07ntnlcxg96jkv9a09fjhxmdr3gz7y3h0efvtkvyafzgslkgjjqq7j5cp
 icon: /Users/maybachlarp/wryft/homepage/public/wryftcircle.png
 supported_nips:
     - NIP-01
