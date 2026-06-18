@@ -1,0 +1,46 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build APK (split)
+        run: npx eas build --platform android --profile preview-split --non-interactive --no-wait
+
+      - name: Wait for build and download
+        run: |
+          BUILD_ID=$(npx eas build:list --platform android --limit 1 --json | jq -r '.[0].id')
+          npx eas build:view $BUILD_ID --wait
+          ARTIFACT_URL=$(npx eas build:view $BUILD_ID --json | jq -r '.artifacts.applicationArchiveUrl')
+          curl -L "$ARTIFACT_URL" -o build-output.tar.gz
+          tar -xzf build-output.tar.gz
+
+      - name: Upload to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apk/release/*.apk
+          tag_name: ${{ github.ref_name }}
