@@ -1,0 +1,7 @@
+repository: https://github.com/Wryft/Wryft-mobile
+release_source: https://github.com/Wryft/Wryft-mobile/releases/tag/Beta
+name: Wryft
+description: A private, decentralized chat app powered by Nostr. Encrypted DMs, private groups, and full control of your identity.
+license: MIT
+metadata_sources:
+    - github
